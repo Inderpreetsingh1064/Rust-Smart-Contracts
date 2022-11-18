@@ -9,6 +9,9 @@ describe("basic-1", () => {
   // Configure the client to use the local cluster.
   anchor.setProvider(provider);
 
+  // set _myAccount to store program account deployed
+  let _myAccount = null;
+
   it("Creates and initializes an account in a single atomic transaction (simplified)", async () => {
     // #region code-simplified
     // The program to execute.
@@ -20,7 +23,7 @@ describe("basic-1", () => {
     // Create the new account and initialize it with the program.
     // #region code-simplified
     await program.methods
-      .initialize(new anchor.BN(1234))
+      .initialize()
       .accounts({
         myAccount: myAccount.publicKey,
         user: provider.wallet.publicKey,
@@ -34,7 +37,7 @@ describe("basic-1", () => {
     const account = await program.account.myAccount.fetch(myAccount.publicKey);
 
     // Check it's state was initialized.
-    assert.ok(account.data.eq(new anchor.BN(1234)));
+    assert.equal(account.data, 0);
 
     // Store the account for the next test.
     _myAccount = myAccount;
@@ -50,7 +53,7 @@ describe("basic-1", () => {
 
     // Invoke the update rpc.
     await program.methods
-      .update(new anchor.BN(4321))
+      .update(new anchor.BN(100))
       .accounts({
         myAccount: myAccount.publicKey,
       })
@@ -60,7 +63,57 @@ describe("basic-1", () => {
     const account = await program.account.myAccount.fetch(myAccount.publicKey);
 
     // Check it's state was mutated.
-    assert.ok(account.data.eq(new anchor.BN(4321)));
+    assert.equal(account.data, 100);
+
+    // #endregion update-test
+  });
+
+  it("Increment a previously created account", async () => {
+    const myAccount = _myAccount;
+
+    // #region update-test
+
+    // The program to execute.
+    const program = anchor.workspace.Basic1;
+
+    // Invoke the update rpc.
+    await program.methods
+      .increment()
+      .accounts({
+        myAccount: myAccount.publicKey,
+      })
+      .rpc();
+
+    // Fetch the newly updated account.
+    const account = await program.account.myAccount.fetch(myAccount.publicKey);
+
+    // Check it's state was mutated.
+    assert.equal(account.data, 101);
+
+    // #endregion update-test
+  });
+
+  it("Updates a previously created account", async () => {
+    const myAccount = _myAccount;
+
+    // #region update-test
+
+    // The program to execute.
+    const program = anchor.workspace.Basic1;
+
+    // Invoke the update rpc.
+    await program.methods
+      .decrement()
+      .accounts({
+        myAccount: myAccount.publicKey,
+      })
+      .rpc();
+
+    // Fetch the newly updated account.
+    const account = await program.account.myAccount.fetch(myAccount.publicKey);
+
+    // Check it's state was mutated.
+    assert.equal(account.data, 100);
 
     // #endregion update-test
   });
